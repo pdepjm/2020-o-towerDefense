@@ -7,9 +7,9 @@ program game {
 	game.addVisual(builder)
 	builder.configureKeys()
 	
-	game.cellSize(16)
-	game.width(40)
-	game.height(30)
+	game.cellSize(8)
+	game.width(80)
+	game.height(60)
 	
 	keyboard.s().onPressDo{enemy.startWalking()}
 	

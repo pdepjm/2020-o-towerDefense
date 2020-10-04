@@ -19,17 +19,3 @@ object enemy {
 		}
 	}
 }
-
-object directionUp {
-	const isometricConverter = new IsometricConverter()
-	method opposite() = directionDown
-	method next(position) = isometricConverter.up(position)
-	method isAtLimit(position) = position.y() > game.height() || position.x() < 0
-}
-
-object directionDown {
-	const isometricConverter = new IsometricConverter()
-	method opposite() = directionUp
-	method next(position) = isometricConverter.down(position)
-	method isAtLimit(position) = position.y() < 0 || position.x() > game.width()
-}
