@@ -1,8 +1,17 @@
 import wollok.game.*
-import pepita.*
+import builder.*
+import enemies.*
 
 program game {
-	game.title("Juego Base")
-	game.addVisual(pepita)
+	game.title("Tauer difens")
+	game.addVisual(builder)
+	builder.configureKeys()
+	
+	game.cellSize(16)
+	game.width(40)
+	game.height(30)
+	
+	keyboard.s().onPressDo{enemy.startWalking()}
+	
 	game.start()
 }
