@@ -3,7 +3,7 @@ import isometry.*
 
 object enemy {
 	var position = game.at(game.height(), game.center().x())
-	var direction = directionDown
+	var direction = new DirectionDown(isometricConverter=new IsometricConverter())
 	
 	method image() = "Delta/idle.png"
 	method position() = position

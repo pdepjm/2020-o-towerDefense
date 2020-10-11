@@ -1,62 +1,108 @@
 import wollok.game.*
 import isometry.*
+import terrain.*
+import debug.*
 
 object builder inherits Terrain (position=game.origin()){
-	const images = ["landscape_00.png","landscape_01.png","landscape_02.png","landscape_03.png","landscape_04.png","landscape_05.png","landscape_06.png","landscape_07.png","landscape_08.png","landscape_09.png", "landscape_00.png","landscape_01.png","landscape_02.png","landscape_03.png","landscape_04.png","landscape_05.png","landscape_06.png","landscape_07.png","landscape_08.png","landscape_09.png","landscape_10.png","landscape_11.png","landscape_12.png","landscape_13.png","landscape_14.png","landscape_15.png","landscape_16.png","landscape_17.png","landscape_18.png","landscape_19.png","landscape_20.png","landscape_21.png","landscape_22.png","landscape_23.png","landscape_24.png","landscape_25.png","landscape_26.png","landscape_27.png","landscape_28.png","landscape_29.png","landscape_30.png","landscape_31.png","landscape_32.png","landscape_33.png","landscape_34.png","landscape_35.png","landscape_36.png","landscape_37.png","landscape_38.png","landscape_39.png"]
-	var currentImageIndex = 0
-	const terrains = [self]
-	const isometricConverter = new IsometricConverter(size=4)
+	const terrains = []
+	var currentTerrain = terrainSwitcher.next(null)
+	var adjacentTerrains // saved for performance reasons
+
+	override method image() = currentTerrain.image()
 	
-	override method image() = "landscape/" + images.get(currentImageIndex)
+	method terrains(ts) {terrains.addAll(ts)} // for testing
+	method terrain(t) {currentTerrain = t} // for testing
 	
-	method changeImage(){
-		if(currentImageIndex == images.size()-1) {
-			currentImageIndex = 0
-		} else {
-			currentImageIndex++
-		}
+	method nextTerrain(){
+		currentTerrain = terrainSwitcher.next(currentTerrain)
+		self.toggleWarning()
 	}
 	
+	method possibleTerrains() = terrainDB.filter(position, {terrain => self.fitsHere(terrain)})
+	
 	method build(){
-		const terrain = new Terrain(image=self.image(), position=self.position())
+		const terrain = currentTerrain.cloneIn(position)
 		terrains.add(terrain) 
 		game.addVisual(terrain)
 		self.redrawAll()
 	}
 	
 	method configureKeys(){
-		keyboard.space().onPressDo({self.changeImage()})
+		keyboard.space().onPressDo({self.nextTerrain()})
 		keyboard.enter().onPressDo({self.build()})
-		keyboard.up().onPressDo({self.moveTo(isometricConverter.up(position))})
-		keyboard.down().onPressDo({self.moveTo(isometricConverter.down(position))})
-		keyboard.right().onPressDo({self.moveTo(isometricConverter.right(position))})
-		keyboard.left().onPressDo({self.moveTo(isometricConverter.left(position))})
+		keyboard.up().onPressDo({self.moveTo(isometricTerrainConverter.up(position))})
+		keyboard.down().onPressDo({self.moveTo(isometricTerrainConverter.down(position))})
+		keyboard.right().onPressDo({self.moveTo(isometricTerrainConverter.right(position))})
+		keyboard.left().onPressDo({self.moveTo(isometricTerrainConverter.left(position))})
 	}
 	
 	method moveTo(pos){
 		position = pos
+		adjacentTerrains = terrains.filter{terrain => terrain.adjacentTo(self)} // saving for performance
+		terrainSwitcher.possibleTerrains(self.possibleTerrains()) // saving for performance
+		self.toggleWarning()
 		self.redrawAll()
 	}
 	
+	method toggleWarning(){
+		if(self.fitsHere(currentTerrain)) warning.hide() else warning.show()
+	}
+	
 	method redrawAll(){
-		terrains.sortedBy{t1, t2 => t1.goesBelow(t2)}
+		(terrains + [self,warning]).sortedBy{t1, t2 => t1.goesBelow(t2)}
 			.forEach{terrain => terrain.redraw()}
 	}
+	
+	method fitsHere(terrain) = self.adjacentTerrains().all{adjacent => adjacent.matches(terrain)}
+	
+	method adjacentTerrains() = adjacentTerrains
 
 }
 
-
-class Terrain {
-	var property image
-	var property position
-	method zIndex() = game.height() - position.y()
-	
+object warning {
+	var on = false
+	method position() = builder.position()
+	method image() = "warning.png"
+	method zIndex() = 9999 
+	method goesBelow(other) = false
 	method redraw() {
-		game.removeVisual(self)
-		game.addVisual(self)
+		if(on){
+			game.removeVisual(self)
+			game.addVisual(self)			
+		}
+	}
+	method show() {
+		if(!on) {
+			on = true
+			game.addVisual(self)
+		}
+	}
+	method hide(){
+		if(on){
+			on = false
+			game.removeVisual(self)
+		}
+	}
+}
+
+
+object terrainSwitcher {
+	var possibleTerrains	
+	
+	method possibleTerrains(possible) {
+		possibleTerrains = possible
 	}
 	
-	method goesBelow(terrain){
-		return self.zIndex() < terrain.zIndex()
+	method next(current) = if (possibleTerrains == null || current == null) terrainDB.anyOne(game.at(0,0))
+		else if (possibleTerrains.isEmpty()) current
+		else self.possibleTerrain()
+		
+	method possibleTerrain() {
+		self.rotatePosibleTerrains()
+		return possibleTerrains.last()
+	}
+	
+	method rotatePosibleTerrains() {
+		possibleTerrains = possibleTerrains.drop(1) + [possibleTerrains.first()]
 	}
 }

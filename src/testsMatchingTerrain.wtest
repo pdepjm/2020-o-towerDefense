@@ -1,0 +1,57 @@
+import terrain.*
+import isometry.*
+import wollok.game.*
+import builder.*
+
+describe "Terrain matching tests" {
+	const ramp = terrainDB.get("08") // road ramp, high at "up" side		
+	const oppositeRamp = terrainDB.get("15") // road ramp, high at "down" side
+	
+	fixture {
+		game.clear()
+	}
+	
+	method matchesTo(dir, terrain) = ramp.matchesTo(dir, terrain.cloneIn(dir.next(ramp.position()))) 
+	
+	only  test "Terrain matches leftwards" {
+		assert.that(self.matchesTo(isometricTerrainConverter.dirLeft(), ramp))
+	}
+	test "Terrain matches upwards" {
+		assert.that(self.matchesTo(isometricTerrainConverter.dirUp(), oppositeRamp))
+	}
+	test "Terrain matches rightwards" {
+		assert.that(self.matchesTo(isometricTerrainConverter.dirRight(), ramp))
+	}
+	test "Terrain matches downwards" {
+		assert.that(self.matchesTo(isometricTerrainConverter.dirDown(), oppositeRamp))
+	}
+	
+	test "terrain not adjacent won't match" {
+		assert.notThat(ramp.matches(ramp))
+		assert.notThat(ramp.matches(ramp.cloneIn(game.at(9,9))))
+	}
+	
+	test "Adjacent terrain matches" {
+		assert.that(ramp.matches(oppositeRamp.cloneIn(isometricTerrainConverter.dirUp().next(ramp.position()))))
+	}
+	
+	test "Adjacent terrains" {
+		const terrainLeft = builder.cloneIn(isometricTerrainConverter.dirLeft().next(builder.position()))
+		const terrainUp = builder.cloneIn(isometricTerrainConverter.dirUp().next(builder.position()))
+		const terrainRight = builder.cloneIn(isometricTerrainConverter.dirRight().next(builder.position()))
+		const terrainFar = builder.cloneIn(game.at(10,10))
+		builder.terrains([terrainLeft, terrainUp, terrainRight, terrainFar])
+		
+		assert.equals([terrainLeft, terrainUp, terrainRight], builder.adjacentTerrains())		
+	}
+	
+	test "FitsHere works" {
+		const rampLeft = ramp.cloneIn(isometricTerrainConverter.dirLeft().next(ramp.position()))
+		const terrainDown = oppositeRamp.cloneIn(isometricTerrainConverter.dirDown().next(ramp.position()))
+		builder.terrain(ramp)
+		builder.terrains([rampLeft, terrainDown])
+		
+		assert.that(builder.fitsHere(ramp))
+	}
+}
+
