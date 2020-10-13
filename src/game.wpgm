@@ -12,7 +12,7 @@ program game {
 	game.height(60)
 	
 	keyboard.s().onPressDo{enemy.startWalking()}
-	
+		
 	game.start()
 
 }

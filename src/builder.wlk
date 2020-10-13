@@ -9,7 +9,7 @@ object builder inherits Terrain (position=game.origin()){
 	var adjacentTerrains // saved for performance reasons
 
 	override method image() = currentTerrain.image()
-	
+		
 	method terrains(ts) {terrains.addAll(ts)} // for testing
 	method terrain(t) {currentTerrain = t} // for testing
 	
@@ -39,7 +39,7 @@ object builder inherits Terrain (position=game.origin()){
 	method moveTo(pos){
 		position = pos
 		adjacentTerrains = terrains.filter{terrain => terrain.adjacentTo(self)} // saving for performance
-		terrainSwitcher.possibleTerrains(self.possibleTerrains()) // saving for performance
+		terrainSwitcher.possibleTerrains(null) // performance reasons. Forces update afterwards
 		self.toggleWarning()
 		self.redrawAll()
 	}
@@ -93,13 +93,20 @@ object terrainSwitcher {
 		possibleTerrains = possible
 	}
 	
-	method next(current) = if (possibleTerrains == null || current == null) terrainDB.anyOne(game.at(0,0))
-		else if (possibleTerrains.isEmpty()) current
+	method possibleTerrains() {
+		if(possibleTerrains == null) {
+			possibleTerrains = builder.possibleTerrains()
+		}
+		return possibleTerrains
+	}
+	
+	method next(current) = if (current == null) terrainDB.anyOne(game.at(0,0))
+		else if (self.possibleTerrains().isEmpty()) current
 		else self.possibleTerrain()
 		
 	method possibleTerrain() {
 		self.rotatePosibleTerrains()
-		return possibleTerrains.last()
+		return self.possibleTerrains().last()
 	}
 	
 	method rotatePosibleTerrains() {
